@@ -1,0 +1,15 @@
+{
+  "name": "self-ai-ability",
+  "owner": {
+    "name": "self-ai-ability"
+  },
+  "plugins": [
+    {
+      "name": "example-skill",
+      "source": "./capabilities/example-skill",
+      "description": "示例 skill，可作为新建 capability 的模板。",
+      "version": "1.0.0",
+      "type": "skill"
+    }
+  ]
+}
