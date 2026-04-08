@@ -1,0 +1,10 @@
+{
+  "name": "workflow-conductor",
+  "displayName": "Workflow Conductor",
+  "version": "1.0.0",
+  "description": "通用工作流指挥协议 — 通过持久化核心目标文件，确保多步骤任务不遗漏、不偏离。",
+  "author": {
+    "name": "self-ai-ability"
+  },
+  "rules": "./rules"
+}

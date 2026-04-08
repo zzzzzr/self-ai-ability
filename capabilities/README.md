@@ -1,6 +1,6 @@
 # Capabilities
 
-当前已内置 `example-skill` 一个示例 capability。
+当前已内置 `example-skill` 和 `workflow-conductor` 两个 capability。
 
 当你需要新增一个能力时，在这里新增一个目录，例如:
 
