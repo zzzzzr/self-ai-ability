@@ -61,3 +61,20 @@ else
   } > "${CLAUDE_MD}"
   echo "已创建 ${CLAUDE_MD} 并写入 Session Objective Protocol"
 fi
+
+# 尝试将 .ai-objectives/ 追加到当前项目的 .gitignore
+# 如果通过 --project 指定了项目目录，则使用该目录；否则使用当前工作目录
+PROJECT_DIR="${2:-.}"
+GITIGNORE="${PROJECT_DIR}/.gitignore"
+IGNORE_ENTRY=".ai-objectives/"
+
+if [[ -f "${GITIGNORE}" ]]; then
+  if ! grep -qxF "${IGNORE_ENTRY}" "${GITIGNORE}"; then
+    printf '\n%s\n' "${IGNORE_ENTRY}" >> "${GITIGNORE}"
+    echo "已追加 ${IGNORE_ENTRY} 到 ${GITIGNORE}"
+  else
+    echo "${IGNORE_ENTRY} 已存在于 ${GITIGNORE}，跳过。"
+  fi
+else
+  echo "提示：未找到 ${GITIGNORE}，请手动将 ${IGNORE_ENTRY} 添加到项目的 .gitignore 中。"
+fi

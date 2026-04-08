@@ -235,6 +235,25 @@ def install_rules(capability_dir: Path, refs: list[str], target_cursor_dir: Path
                           f"rules/{item.name} -> .cursor/rules/{item.name}")
 
 
+def ensure_gitignore_entry(workspace: Path, entry: str) -> bool:
+    """Append entry to .gitignore if not already present. Returns True if appended."""
+    gitignore = workspace / ".gitignore"
+    if gitignore.is_file():
+        content = gitignore.read_text(encoding="utf-8")
+        # Check for exact line match (with or without trailing newline)
+        for line in content.splitlines():
+            if line.strip() == entry:
+                return False
+    else:
+        content = ""
+
+    with gitignore.open("a", encoding="utf-8") as f:
+        if content and not content.endswith("\n"):
+            f.write("\n")
+        f.write(f"{entry}\n")
+    return True
+
+
 def install_capability(capability_dir: Path, target_cursor_dir: Path, force: bool) -> Stats:
     stats = Stats()
     plugin_config = load_plugin_config(capability_dir)
@@ -336,10 +355,19 @@ def main() -> None:
     print(f"  target: {target_cursor_dir}\n")
 
     stats = install_capability(capability_dir, target_cursor_dir, args.force)
-    print(f"\nDone. copied={stats.copied}, merged={stats.merged}, skipped={stats.skipped}")
 
+    # If the capability uses rules, try to add .ai-objectives/ to .gitignore
     plugin_config = load_plugin_config(capability_dir)
     has_rules = bool(ensure_list(plugin_config.get("rules")) or (capability_dir / "rules").is_dir())
+    if has_rules and args.dest:
+        if ensure_gitignore_entry(workspace, ".ai-objectives/"):
+            print("  [gitignore] appended .ai-objectives/ to .gitignore")
+            stats.merged += 1
+        else:
+            print("  [gitignore] .ai-objectives/ already in .gitignore")
+
+    print(f"\nDone. copied={stats.copied}, merged={stats.merged}, skipped={stats.skipped}")
+
     if has_rules and not args.dest:
         print("\nNote: Cursor rules are project-level. The files above were saved to ~/.cursor/rules/ as a local copy.")
         print("To activate in a specific project, re-run with --dest:")

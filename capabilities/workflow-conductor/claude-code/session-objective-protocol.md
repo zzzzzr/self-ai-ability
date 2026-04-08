@@ -2,7 +2,7 @@
 
 ### 文件命名规则
 
-Objective 文件存放于 `.cursor/sessions/` 目录，命名格式为：
+Objective 文件存放于 `.ai-objectives/` 目录，命名格式为：
 
 ```
 <YYYYMMDD_HHmm>_<short-slug>.md
@@ -24,7 +24,7 @@ objective: 一句话核心目标
 
 ### 发现与绑定
 
-每次会话开始时（或识别到用户开始多步骤工作流时），先扫描 `.cursor/sessions/` 目录下所有 `.md` 文件：
+每次会话开始时（或识别到用户开始多步骤工作流时），先扫描 `.ai-objectives/` 目录下所有 `.md` 文件：
 
 1. **存在 `status: active` 的文件时**：
    - 读取其核心目标，向用户确认："发现一个进行中的目标：`<核心目标>`（文件：`<文件名>`），是否继续这个任务？"
@@ -70,7 +70,7 @@ objective: <一句话核心目标>
 
 5. 创建完成后，向用户回显确认信息：复述核心目标并询问是否准确
 6. 若用户尚未确认目标表述，不得继续后续执行步骤
-7. 确保 `.cursor/sessions/` 目录被 `.gitignore` 忽略
+7. 创建文件前，检查项目根目录的 `.gitignore` 是否已包含 `.ai-objectives/`。如果没有，自动追加一行 `.ai-objectives/` 到 `.gitignore` 末尾
 
 ### 生命周期
 
