@@ -19,7 +19,7 @@
 | `example-skill` | 示例 skill，可作为新建 capability 的模板 | — |
 
 - `workflow-conductor`
-  通用工作流指挥协议。安装后会在 `~/.cursor/rules/` 下添加一条 alwaysApply 规则，自动引导 agent 在多步骤任务中创建和维护核心目标文件（`.cursor/sessions/objective.md`），确保任务不遗漏、不偏离。适用于所有命令组和 skill 工作流。Claude Code 端通过 `capabilities/workflow-conductor/claude-code/install.sh` 安装到 `~/.claude/CLAUDE.md`。
+  通用工作流指挥协议。引导 agent 在多步骤任务中创建和维护核心目标文件（项目根目录 `.ai-objectives/` 下，按时间和业务场景命名），确保任务不遗漏、不偏离、多任务不冲突。Cursor 端安装为 alwaysApply 规则，Claude Code 端通过 `capabilities/workflow-conductor/claude-code/install.sh` 安装到 `~/.claude/CLAUDE.md`。安装时会自动将 `.ai-objectives/` 追加到项目 `.gitignore`。
 
 ## 快速开始
 
