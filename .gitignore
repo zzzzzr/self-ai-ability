@@ -18,3 +18,5 @@ tmp
 .env.*
 *.local
 credentials*.json
+
+.ai-objectives/

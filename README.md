@@ -40,12 +40,14 @@
 # 2. 安装指定 capability（默认安装到 ~/.cursor/）
 /path/to/self-ai-ability/scripts/install.sh <capability-name>
 
-# 3. 安装到具体项目
+# 3. 安装到具体项目（rules 和 references 会安装到 <project>/.cursor/ 下）
 /path/to/self-ai-ability/scripts/install.sh <capability-name> --dest /path/to/project
 
 # 4. 冲突时强制覆盖
 /path/to/self-ai-ability/scripts/install.sh <capability-name> --force
 ```
+
+对于包含 `references` 的 capability（如 `workflow-conductor`），安装脚本会将 rules 和 references 一并安装到 `.cursor/` 下。rules 中的 probe 通过 `.cursor/references/` 路径按需读取完整协议。
 
 `--dest` 规则：
 
@@ -85,8 +87,14 @@ capabilities/<name>/
 - `hooks`
 - `mcpServers`
 - `commands`
+- `rules`
+- `references`
 
-Cursor 安装脚本处理上面五类资源。其中 `commands` 会被复制到 `~/.cursor/commands/`，作为 Cursor 斜杠命令使用。
+Cursor 安装脚本处理上面七类资源。其中 `commands` 会被复制到 `~/.cursor/commands/`，作为 Cursor 斜杠命令使用；`references` 会被复制到 `.cursor/references/`，供 rules 按需读取。
+
+## plugin.json 说明
+
+每个 capability 内的 `.claude-plugin/plugin.json` 和 `.cursor-plugin/plugin.json` 是本仓库自定义的清单格式，用于声明该 capability 包含哪些资源。它们**不是** Claude Code 或 Cursor 官方的插件规范，仅供本仓库的安装脚本（`scripts/install.sh`、`scripts/install-cursor-capability.py`）和 Claude Code `/plugin` 命令识别使用。
 
 ## 新增一个 capability
 
@@ -103,6 +111,8 @@ Cursor 安装脚本处理上面五类资源。其中 `commands` 会被复制到 
 - `hook` 使用 `hooks/hooks.json` 加配套脚本
 - `mcp` 使用 `mcp-claude.json` 和 `mcp-cursor.json`
 - `command` 使用 `commands/<commandName>.md`
+- `rule` 使用 `rules/<rule-name>.md`（`alwaysApply: true` 的轻量规则）
+- `reference` 使用 `references/<name>.md`（供 rules 按需 Read 的详细文档）
 
 最小 skill 结构示例：
 

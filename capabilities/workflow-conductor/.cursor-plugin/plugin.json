@@ -6,5 +6,6 @@
   "author": {
     "name": "self-ai-ability"
   },
-  "rules": "./rules"
+  "rules": "./rules",
+  "references": "./references"
 }

@@ -235,6 +235,25 @@ def install_rules(capability_dir: Path, refs: list[str], target_cursor_dir: Path
                           f"rules/{item.name} -> .cursor/rules/{item.name}")
 
 
+def install_references(capability_dir: Path, refs: list[str], target_cursor_dir: Path, force: bool, stats: Stats) -> None:
+    for ref in refs:
+        src = capability_dir / ref.lstrip("./")
+        if not src.exists():
+            print(f"  [warn]  references path not found: {src}")
+            continue
+
+        target_root = target_cursor_dir / "references"
+        if src.is_file():
+            copy_file(src, target_root / src.name, force, stats,
+                      f"references/{src.name} -> .cursor/references/{src.name}")
+        elif src.is_dir():
+            for item in sorted(src.rglob("*")):
+                if item.is_file():
+                    rel = item.relative_to(src)
+                    copy_file(item, target_root / rel, force, stats,
+                              f"references/{rel} -> .cursor/references/{rel}")
+
+
 def ensure_gitignore_entry(workspace: Path, entry: str) -> bool:
     """Append entry to .gitignore if not already present. Returns True if appended."""
     gitignore = workspace / ".gitignore"
@@ -293,6 +312,11 @@ def install_capability(capability_dir: Path, target_cursor_dir: Path, force: boo
     if not rule_refs and (capability_dir / "rules").is_dir():
         rule_refs = ["./rules"]
     install_rules(capability_dir, rule_refs, target_cursor_dir, force, stats)
+
+    ref_refs = ensure_list(plugin_config.get("references"))
+    if not ref_refs and (capability_dir / "references").is_dir():
+        ref_refs = ["./references"]
+    install_references(capability_dir, ref_refs, target_cursor_dir, force, stats)
 
     return stats
 
