@@ -20,3 +20,6 @@ tmp
 credentials*.json
 
 .ai-objectives/
+
+# Personal sync config (contains local paths)
+scripts/sync-config.json

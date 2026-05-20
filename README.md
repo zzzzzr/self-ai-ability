@@ -55,6 +55,33 @@
 - `--dest /path/to/project` 写入 `/path/to/project/.cursor/`
 - 不传 `--dest` 时，默认写入 `~/.cursor/`
 
+## 批量同步工具
+
+当你有多个项目（或同一项目的多个副本）需要安装相同的 capability 时，可以用 `scripts/sync-capabilities.sh` 一条命令同步到所有目标。
+
+```bash
+# 1. 复制配置模板并填入你的目标项目路径
+cp scripts/sync-config.example.json scripts/sync-config.json
+
+# 2. 执行任意安装命令，{dest} 会被逐个替换为配置中的目标路径
+scripts/sync-capabilities.sh "python3 scripts/install-cursor-capability.py workflow-conductor --dest {dest} --force"
+
+# 也可以执行其他仓库的安装脚本
+scripts/sync-capabilities.sh "bash ~/other-repo/install.sh --project={dest}"
+```
+
+配置文件 `sync-config.json`（不提交到仓库，已 gitignore）：
+
+```json
+{
+  "targets": [
+    "~/Documents/for_git/project-a",
+    "~/Documents/for_hub/project-a",
+    "~/Documents/for_git/project-b"
+  ]
+}
+```
+
 ## 仓库结构
 
 ```text
@@ -68,7 +95,9 @@
 │       └── <capability-name>.md
 └── scripts/
     ├── install.sh
-    └── install-cursor-capability.py
+    ├── install-cursor-capability.py
+    ├── sync-capabilities.sh
+    └── sync-config.example.json
 ```
 
 每个 capability 都是一个独立 plugin，内部只放自己需要的资源和两份薄清单：
