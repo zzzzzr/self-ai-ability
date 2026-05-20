@@ -47,7 +47,7 @@
 /path/to/self-ai-ability/scripts/install.sh <capability-name> --force
 ```
 
-对于包含 `references` 的 capability（如 `workflow-conductor`），安装脚本会将 rules 和 references 一并安装到 `.cursor/` 下。Cursor 项目规则会以 `.mdc` 文件落盘到 `.cursor/rules/`；rules 中的 probe 通过 `.cursor/references/` 路径按需读取完整协议。
+对于包含 `references` 的 capability，安装脚本会将 rules 和 references 一并安装到 `.cursor/` 下。Cursor 项目规则会以 `.mdc` 文件落盘到 `.cursor/rules/`。
 
 `--dest` 规则：
 

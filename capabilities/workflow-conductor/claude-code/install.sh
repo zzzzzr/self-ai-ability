@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install.sh — 将 Session Objective Protocol 安装到 ~/.claude/CLAUDE.md
-# 从 rules/ 和 references/ 读取（单一源文件），写入时自动剥离 YAML frontmatter
+# 从 rules/session-objective.md 读取（单一源文件），写入时自动剥离 YAML frontmatter
 # 幂等：重复执行不会重复写入；--force 强制替换已有内容
 # 用成对 HTML 注释标记包裹内容，--force 按标记范围删除，不影响其他内容
 
@@ -51,7 +51,6 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RULE_FILE="${SCRIPT_DIR}/../rules/session-objective.md"
-REF_FILE="${SCRIPT_DIR}/../references/conductor-protocol.md"
 CLAUDE_DIR="${HOME}/.claude"
 CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
 
@@ -59,12 +58,10 @@ START_MARKER="<!-- workflow-conductor:start -->"
 END_MARKER="<!-- workflow-conductor:end -->"
 
 # 检查源文件存在
-for f in "${RULE_FILE}" "${REF_FILE}"; do
-  if [[ ! -f "${f}" ]]; then
-    echo "ERROR: 源文件不存在: ${f}" >&2
-    exit 1
-  fi
-done
+if [[ ! -f "${RULE_FILE}" ]]; then
+  echo "ERROR: 源文件不存在: ${RULE_FILE}" >&2
+  exit 1
+fi
 
 # 确保 ~/.claude 目录存在
 mkdir -p "${CLAUDE_DIR}"
@@ -90,20 +87,9 @@ strip_frontmatter() {
   ' "$1"
 }
 
-# 剥离 frontmatter，并去掉 probe-only 标记之间的内容（内联后该指令无意义）
-strip_probe_for_inline() {
-  strip_frontmatter "$1" | awk '
-    /^<!-- probe-only:start -->/ { skip=1; next }
-    /^<!-- probe-only:end -->/ { skip=0; next }
-    !skip { print }
-  '
-}
-
-# 组装内容：rule 探针（去掉"协议详情"指令）+ 完整协议，用成对标记包裹
+# 组装内容：用成对标记包裹
 CONTENT="${START_MARKER}
-$(strip_probe_for_inline "${RULE_FILE}")
-
-$(cat "${REF_FILE}")
+$(strip_frontmatter "${RULE_FILE}")
 ${END_MARKER}"
 
 # 写入 CLAUDE.md
