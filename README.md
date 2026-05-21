@@ -83,6 +83,43 @@ scripts/sync-capabilities.sh "bash ~/other-repo/install.sh --project={dest}"
 }
 ```
 
+### 同步 plugins 配置
+
+当你需要让多个项目的 `.cursor/settings.json` 和 `.claude/settings.json` 中的 plugins 保持一致时，使用 `scripts/sync-plugins.py`。
+
+```bash
+# 以标准配置为准，替换所有目标项目的 plugins（删除多余的）
+python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --replace
+
+# 先 dry-run 查看变更预览
+python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --replace --dry-run
+
+# 以某个项目为 source，同步到其他目标
+python3 scripts/sync-plugins.py --from-project ~/Documents/for_git/overseas-payment
+
+# 只追加新 plugins，不删除已有的
+python3 scripts/sync-plugins.py --from-file plugins-to-add.json
+
+# 只同步到 Cursor 或 Claude Code
+python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --replace --platform cursor
+python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --replace --platform claude
+```
+
+选项说明：
+
+| 选项 | 作用 |
+|------|------|
+| `--from-file FILE` | 从 JSON 文件读取 plugins |
+| `--from-project DIR` | 从某个项目的 settings.json 读取 plugins |
+| `--replace` | 替换模式：以 source 为准，删除目标中多余的 plugins |
+| `--force` | 覆盖同名 plugin（不删除多余的） |
+| `--platform cursor/claude/both` | 指定同步到哪个平台（默认 both） |
+| `--dry-run` | 预览变更，不实际写入 |
+| `--exclude DIR` | 排除某个目标项目 |
+| `--config FILE` | 指定 targets 配置文件（默认 sync-config.json） |
+
+标准配置文件 `scripts/plugins-standard.json` 提交到仓库，作为所有项目的 plugins 基准。新增或移除 plugin 时更新此文件后执行 `--replace` 即可。
+
 ## 仓库结构
 
 ```text
@@ -98,6 +135,8 @@ scripts/sync-capabilities.sh "bash ~/other-repo/install.sh --project={dest}"
     ├── install.sh
     ├── install-cursor-capability.py
     ├── sync-capabilities.sh
+    ├── sync-plugins.py
+    ├── plugins-standard.json
     └── sync-config.example.json
 ```
 
