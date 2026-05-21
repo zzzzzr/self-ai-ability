@@ -66,27 +66,18 @@ if echo "$INPUT" | grep -q '"hook_event_name"' 2>/dev/null; then
   is_claude_code=true
 fi
 
+json_escape() {
+  if command -v jq &>/dev/null; then
+    jq -Rs '.' <<< "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$1"
+  fi
+}
+
+escaped_ctx=$(json_escape "$context")
+
 if [[ "$is_claude_code" == true ]]; then
-  if command -v jq &>/dev/null; then
-    jq -n --arg ctx "$context" '{
-      hookSpecificOutput: {
-        hookEventName: "SessionStart",
-        additionalContext: $ctx
-      }
-    }'
-  else
-    escaped=$(echo "$context" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' '\\' | sed 's/\\/\\n/g')
-    cat <<EOJSON
-{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"${escaped}"}}
-EOJSON
-  fi
+  printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$escaped_ctx"
 else
-  if command -v jq &>/dev/null; then
-    jq -n --arg ctx "$context" '{ additional_context: $ctx }'
-  else
-    escaped=$(echo "$context" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' '\\' | sed 's/\\/\\n/g')
-    cat <<EOJSON
-{"additional_context":"${escaped}"}
-EOJSON
-  fi
+  printf '{"additional_context":%s}\n' "$escaped_ctx"
 fi

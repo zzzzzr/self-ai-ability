@@ -71,63 +71,85 @@ fi
 # 确保 ~/.claude 目录存在
 mkdir -p "${CLAUDE_DIR}"
 
-# 幂等检查：如果已包含成对标记
-ALREADY_INSTALLED=false
-if [[ -f "${CLAUDE_MD}" ]] && grep -qF "${START_MARKER}" "${CLAUDE_MD}"; then
-  ALREADY_INSTALLED=true
-  if [[ "${FORCE}" == false ]]; then
-    echo "Session Objective Protocol 已存在于 ${CLAUDE_MD}，跳过写入。"
-    echo "如需更新，请使用 --force 参数强制替换。"
-    exit 0
+# 互斥检测：如果已通过 plugin 机制加载了 workflow-conductor 的 rule，
+# 则跳过 CLAUDE.md 写入（避免 agent 收到两份完全相同的协议内容浪费 context）
+SKIP_RULE_INSTALL=false
+check_plugin_loaded() {
+  local settings_file="$1"
+  if [[ -f "$settings_file" ]] && command -v jq &>/dev/null; then
+    if jq -e '.enabledPlugins[]? | select(contains("workflow-conductor"))' "$settings_file" &>/dev/null; then
+      return 0
+    fi
   fi
-fi
-
-# 剥离 YAML frontmatter 的函数
-strip_frontmatter() {
-  awk '
-    BEGIN { in_front=0 }
-    NR==1 && /^---/ { in_front=1; next }
-    in_front && /^---/ { in_front=0; next }
-    !in_front { print }
-  ' "$1"
+  return 1
 }
 
-# 组装内容：用成对标记包裹
-CONTENT="${START_MARKER}
+for sf in "${CLAUDE_DIR}/settings.json" "${PROJECT_DIR}/.claude/settings.json"; do
+  if check_plugin_loaded "$sf"; then
+    SKIP_RULE_INSTALL=true
+    echo "检测到 workflow-conductor 已通过 plugin 机制加载（${sf}），跳过 CLAUDE.md 协议写入（避免重复）。"
+    echo "仅安装 hooks。"
+    break
+  fi
+done
+
+if [[ "${SKIP_RULE_INSTALL}" == false ]]; then
+  # 幂等检查：如果已包含成对标记
+  ALREADY_INSTALLED=false
+  if [[ -f "${CLAUDE_MD}" ]] && grep -qF "${START_MARKER}" "${CLAUDE_MD}"; then
+    ALREADY_INSTALLED=true
+    if [[ "${FORCE}" == false ]]; then
+      echo "Session Objective Protocol 已存在于 ${CLAUDE_MD}，跳过写入。"
+      echo "如需更新，请使用 --force 参数强制替换。"
+    fi
+  fi
+
+  if [[ "${ALREADY_INSTALLED}" == false ]] || [[ "${FORCE}" == true ]]; then
+    # 剥离 YAML frontmatter 的函数
+    strip_frontmatter() {
+      awk '
+        BEGIN { in_front=0 }
+        NR==1 && /^---/ { in_front=1; next }
+        in_front && /^---/ { in_front=0; next }
+        !in_front { print }
+      ' "$1"
+    }
+
+    # 组装内容：用成对标记包裹
+    CONTENT="${START_MARKER}
 $(strip_frontmatter "${RULE_FILE}")
 ${END_MARKER}"
 
-# 写入 CLAUDE.md
-if [[ "${ALREADY_INSTALLED}" == true ]]; then
-  # --force 原地替换：在 start marker 位置插入新内容，跳过旧内容
-  # 使用 trim 后匹配，容忍行首尾空白（防止用户手动编辑引入空格）
-  CONTENT_TMP="$(mktemp)"
-  printf '%s\n' "${CONTENT}" > "${CONTENT_TMP}"
-  awk -v sm="${START_MARKER}" -v em="${END_MARKER}" -v newfile="${CONTENT_TMP}" '
-    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
-    trim($0) == sm {
-      while ((getline line < newfile) > 0) print line
-      close(newfile)
-      skip=1; next
-    }
-    trim($0) == em { skip=0; next }
-    !skip { print }
-  ' "${CLAUDE_MD}" > "${CLAUDE_MD}.tmp"
-  rm -f "${CONTENT_TMP}"
-  mv "${CLAUDE_MD}.tmp" "${CLAUDE_MD}"
-  echo "已原地替换 Session Objective Protocol（${CLAUDE_MD}）"
-elif [[ -f "${CLAUDE_MD}" ]]; then
-  # 首次安装，文件已存在：追加到末尾
-  printf '\n%s\n' "${CONTENT}" >> "${CLAUDE_MD}"
-  echo "已追加 Session Objective Protocol 到 ${CLAUDE_MD}"
-else
-  # 文件不存在：创建新文件
-  {
-    echo "# Global Instructions"
-    echo ""
-    echo "${CONTENT}"
-  } > "${CLAUDE_MD}"
-  echo "已创建 ${CLAUDE_MD} 并写入 Session Objective Protocol"
+    # 写入 CLAUDE.md
+    if [[ "${ALREADY_INSTALLED}" == true ]]; then
+      # --force 原地替换
+      CONTENT_TMP="$(mktemp)"
+      printf '%s\n' "${CONTENT}" > "${CONTENT_TMP}"
+      awk -v sm="${START_MARKER}" -v em="${END_MARKER}" -v newfile="${CONTENT_TMP}" '
+        function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+        trim($0) == sm {
+          while ((getline line < newfile) > 0) print line
+          close(newfile)
+          skip=1; next
+        }
+        trim($0) == em { skip=0; next }
+        !skip { print }
+      ' "${CLAUDE_MD}" > "${CLAUDE_MD}.tmp"
+      rm -f "${CONTENT_TMP}"
+      mv "${CLAUDE_MD}.tmp" "${CLAUDE_MD}"
+      echo "已原地替换 Session Objective Protocol（${CLAUDE_MD}）"
+    elif [[ -f "${CLAUDE_MD}" ]]; then
+      printf '\n%s\n' "${CONTENT}" >> "${CLAUDE_MD}"
+      echo "已追加 Session Objective Protocol 到 ${CLAUDE_MD}"
+    else
+      {
+        echo "# Global Instructions"
+        echo ""
+        echo "${CONTENT}"
+      } > "${CLAUDE_MD}"
+      echo "已创建 ${CLAUDE_MD} 并写入 Session Objective Protocol"
+    fi
+  fi
 fi
 
 # 尝试将 .ai-objectives/ 追加到项目的 .gitignore

@@ -62,16 +62,13 @@ fi
 context="${context}
 如果刚完成了某个步骤，请检查是否需要更新 objective 文件（勾选 checkbox、追加约束等）。"
 
-if command -v jq &>/dev/null; then
-  jq -n --arg ctx "$context" '{
-    hookSpecificOutput: {
-      hookEventName: "Stop",
-      additionalContext: $ctx
-    }
-  }'
-else
-  escaped=$(echo "$context" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' '\\' | sed 's/\\/\\n/g')
-  cat <<EOJSON
-{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":"${escaped}"}}
-EOJSON
-fi
+json_escape() {
+  if command -v jq &>/dev/null; then
+    jq -Rs '.' <<< "$1"
+  else
+    python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$1"
+  fi
+}
+
+escaped_ctx=$(json_escape "$context")
+printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' "$escaped_ctx"
