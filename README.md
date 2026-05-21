@@ -17,7 +17,7 @@
 | capability | 类型 | 说明 |
 |---|---|---|
 | `example-skill` | skill | 示例 skill，可作为新建 capability 的模板 |
-| `workflow-conductor` | rule | 通用工作流指挥协议。引导 agent 在多步骤任务中创建和维护核心目标文件（项目根目录 `.ai-objectives/` 下，按时间和业务场景命名），确保任务不遗漏、不偏离、多任务不冲突。安装时会自动将 `.ai-objectives/` 追加到项目 `.gitignore` |
+| `workflow-conductor` | rule + hooks | 通用工作流指挥协议。引导 agent 在多步骤任务中创建和维护核心目标文件（项目根目录 `.ai-objectives/` 下，按时间和业务场景命名），确保任务不遗漏、不偏离、多任务不冲突。含 hooks 执行保障层（SessionStart 发现注入 / Stop 步骤提醒 / PreCompact 约束保全），安装时会自动将 `.ai-objectives/` 追加到项目 `.gitignore` |
 | `codex-skill-migrator` | skill | 将外部 AI 仓库（plugins/ 或 capabilities/ 结构）中的 Skill 和 MCP 配置迁移到 Codex，支持 dry-run 与 MCP 合并到 ~/.codex/config.toml |
 
 ## 快速开始

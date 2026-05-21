@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/conductor-session-start.sh"
+      }
+    ],
+    "preCompact": [
+      {
+        "command": ".cursor/hooks/conductor-pre-compact.sh"
+      }
+    ]
+  }
+}

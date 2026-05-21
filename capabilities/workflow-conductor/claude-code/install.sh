@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# install.sh — 将 Session Objective Protocol 安装到 ~/.claude/CLAUDE.md
+# install.sh — 将 Session Objective Protocol 安装到 ~/.claude/CLAUDE.md，并注册 hooks
 # 从 rules/session-objective.md 读取（单一源文件），写入时自动剥离 YAML frontmatter
 # 幂等：重复执行不会重复写入；--force 强制替换已有内容
 # 用成对 HTML 注释标记包裹内容，--force 按标记范围删除，不影响其他内容
+# Hooks: 复制 hook 脚本到 ~/.claude/hooks/，并注册到 ~/.claude/settings.json
 
 set -euo pipefail
 
@@ -50,9 +51,13 @@ for arg in "$@"; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RULE_FILE="${SCRIPT_DIR}/../rules/session-objective.md"
+CAP_ROOT="${SCRIPT_DIR}/.."
+RULE_FILE="${CAP_ROOT}/rules/session-objective.md"
+HOOKS_SRC_DIR="${CAP_ROOT}/hooks"
 CLAUDE_DIR="${HOME}/.claude"
 CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
+CLAUDE_SETTINGS="${CLAUDE_DIR}/settings.json"
+HOOKS_DST_DIR="${CLAUDE_DIR}/hooks"
 
 START_MARKER="<!-- workflow-conductor:start -->"
 END_MARKER="<!-- workflow-conductor:end -->"
@@ -141,3 +146,101 @@ if [[ -f "${GITIGNORE}" ]]; then
 else
   echo "提示：未找到 ${GITIGNORE}，请手动将 ${IGNORE_ENTRY} 添加到项目的 .gitignore 中。"
 fi
+
+# ── Hooks 安装 ──────────────────────────────────────────────────────────────
+
+HOOK_SCRIPTS=(
+  "conductor-session-start.sh"
+  "conductor-stop.sh"
+  "conductor-pre-compact.sh"
+)
+
+mkdir -p "${HOOKS_DST_DIR}"
+for script in "${HOOK_SCRIPTS[@]}"; do
+  src="${HOOKS_SRC_DIR}/${script}"
+  dst="${HOOKS_DST_DIR}/${script}"
+  if [[ ! -f "$src" ]]; then
+    echo "WARN: hook 脚本不存在: ${src}" >&2
+    continue
+  fi
+  if [[ -f "$dst" ]] && [[ "${FORCE}" == false ]]; then
+    echo "hook 脚本已存在: ${dst}，跳过。使用 --force 覆盖。"
+  else
+    cp "$src" "$dst"
+    chmod +x "$dst"
+    echo "已安装 hook 脚本: ${dst}"
+  fi
+done
+
+# 注册 hooks 到 settings.json（幂等：检查是否已存在 conductor 相关 hook）
+HOOKS_JSON='{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'"${HOOKS_DST_DIR}"'/conductor-session-start.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'"${HOOKS_DST_DIR}"'/conductor-stop.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'"${HOOKS_DST_DIR}"'/conductor-pre-compact.sh"
+          }
+        ]
+      }
+    ]
+  }
+}'
+
+if [[ -f "${CLAUDE_SETTINGS}" ]] && grep -q "conductor-session-start" "${CLAUDE_SETTINGS}"; then
+  if [[ "${FORCE}" == true ]]; then
+    echo "检测到已有 conductor hooks 配置，--force 模式下将覆盖。"
+  else
+    echo "conductor hooks 已注册于 ${CLAUDE_SETTINGS}，跳过。使用 --force 覆盖。"
+    echo ""
+    echo "安装完成。"
+    exit 0
+  fi
+fi
+
+if command -v jq &>/dev/null; then
+  if [[ -f "${CLAUDE_SETTINGS}" ]]; then
+    EXISTING=$(cat "${CLAUDE_SETTINGS}")
+    echo "${EXISTING}" | jq --argjson new_hooks "$(echo "${HOOKS_JSON}" | jq '.hooks')" \
+      '.hooks = (.hooks // {}) * $new_hooks' > "${CLAUDE_SETTINGS}.tmp"
+    mv "${CLAUDE_SETTINGS}.tmp" "${CLAUDE_SETTINGS}"
+    echo "已合并 conductor hooks 到 ${CLAUDE_SETTINGS}"
+  else
+    echo "${HOOKS_JSON}" | jq '.' > "${CLAUDE_SETTINGS}"
+    echo "已创建 ${CLAUDE_SETTINGS} 并写入 conductor hooks"
+  fi
+else
+  echo ""
+  echo "⚠ 未找到 jq，无法自动注册 hooks 到 ${CLAUDE_SETTINGS}。"
+  echo "请手动将以下配置合并到 ${CLAUDE_SETTINGS} 的 hooks 字段中："
+  echo ""
+  echo "${HOOKS_JSON}"
+  echo ""
+fi
+
+echo ""
+echo "安装完成。"
