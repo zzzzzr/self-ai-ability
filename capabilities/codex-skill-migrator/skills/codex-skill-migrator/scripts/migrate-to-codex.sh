@@ -2,4 +2,4 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-python3 "$SCRIPT_DIR/migrate_context_hub_to_codex.py" "$@"
+python3 "$SCRIPT_DIR/migrate_to_codex.py" "$@"

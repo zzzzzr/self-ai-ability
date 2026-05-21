@@ -1,6 +1,6 @@
 ---
 name: codex-skill-migrator
-description: "将外部 AI 仓库中的 Skill 和 MCP 配置迁移到 Codex。适用于 plugins/<name>/skills/<skill>/SKILL.md 或 capabilities/<name>/skills/<skill>/SKILL.md 结构的仓库；支持 dry-run、按 plugin 或 capability 选择、生成 MCP TOML 片段并合并到 ~/.codex/config.toml。当用户提到迁移 Skill 到 Codex、迁移 MCP 到 Codex、把 Cursor/Claude Code 的插件仓库接入 Codex、从 context-hub 或 feishu-skill 安装 Skill 到 ~/.agents/skills 时必须使用此技能。"
+description: "将外部 AI 仓库中的 Skill 和 MCP 配置迁移到 Codex。适用于 plugins/<name>/skills/<skill>/SKILL.md 或 capabilities/<name>/skills/<skill>/SKILL.md 结构的仓库；支持 dry-run、按 plugin 或 capability 选择、生成 MCP TOML 片段并合并到 ~/.codex/config.toml。当用户提到迁移 Skill 到 Codex、迁移 MCP 到 Codex、把 Cursor/Claude Code 的插件仓库接入 Codex、从外部仓库安装 Skill 到 ~/.agents/skills 时必须使用此技能。"
 ---
 
 # Codex Skill Migrator
@@ -77,7 +77,7 @@ bash $SKILL_DIR/scripts/migrate-to-codex.sh \
 
 ## Bundled Scripts
 
-- `$SKILL_DIR/scripts/migrate_context_hub_to_codex.py`：主迁移脚本（Python 3，无额外依赖）
+- `$SKILL_DIR/scripts/migrate_to_codex.py`：主迁移脚本（Python 3，无额外依赖）
 - `$SKILL_DIR/scripts/migrate-to-codex.sh`：shell 包装入口（调用上面的 Python 脚本）
 
 如果用户只想迁单个 plugin 或 capability，使用 `--plugin <name>`，可重复传入。

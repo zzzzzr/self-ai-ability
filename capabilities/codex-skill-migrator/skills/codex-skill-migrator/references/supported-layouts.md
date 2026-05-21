@@ -16,8 +16,7 @@ repo/
 
 适用示例：
 
-- `context-hub`
-- `ec-core-ai-hub`
+- 任何以 `plugins/` 为顶层目录组织插件的仓库
 
 ## capabilities 布局
 
@@ -33,7 +32,7 @@ repo/
 
 适用示例：
 
-- `feishu-skill`
+- 任何以 `capabilities/` 为顶层目录组织能力单元的仓库
 
 ## 输出位置
 
