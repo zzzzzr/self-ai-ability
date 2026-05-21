@@ -126,6 +126,8 @@ else
 fi
 
 # 尝试将 .ai-objectives/ 追加到项目的 .gitignore
+# 仅在 .gitignore 已存在时追加；不主动创建——因为本脚本默认安装到 ~/.claude/（全局），
+# 项目级的 .gitignore 应由协议运行时自动处理（见 session-objective.md 创建流程步骤 4）
 GITIGNORE="${PROJECT_DIR}/.gitignore"
 IGNORE_ENTRY=".ai-objectives/"
 
