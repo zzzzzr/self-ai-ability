@@ -219,6 +219,11 @@ def install_commands(capability_dir: Path, refs: list[str], target_cursor_dir: P
 
 
 def install_rules(capability_dir: Path, refs: list[str], target_cursor_dir: Path, force: bool, stats: Stats) -> None:
+    def cursor_rule_name(rule_file: Path) -> str:
+        if rule_file.suffix == ".md":
+            return f"{rule_file.stem}.mdc"
+        return rule_file.name
+
     for ref in refs:
         src = capability_dir / ref.lstrip("./")
         if not src.exists():
@@ -226,13 +231,35 @@ def install_rules(capability_dir: Path, refs: list[str], target_cursor_dir: Path
             continue
 
         target_root = target_cursor_dir / "rules"
-        if src.is_file() and src.suffix == ".md":
-            copy_file(src, target_root / src.name, force, stats,
-                      f"rules/{src.name} -> .cursor/rules/{src.name}")
+        if src.is_file() and src.suffix in {".md", ".mdc"}:
+            target_name = cursor_rule_name(src)
+            copy_file(src, target_root / target_name, force, stats,
+                      f"rules/{src.name} -> .cursor/rules/{target_name}")
         elif src.is_dir():
-            for item in sorted(src.glob("*.md")):
-                copy_file(item, target_root / item.name, force, stats,
-                          f"rules/{item.name} -> .cursor/rules/{item.name}")
+            rule_files = [item for item in src.iterdir() if item.is_file() and item.suffix in {".md", ".mdc"}]
+            for item in sorted(rule_files):
+                target_name = cursor_rule_name(item)
+                copy_file(item, target_root / target_name, force, stats,
+                          f"rules/{item.name} -> .cursor/rules/{target_name}")
+
+
+def install_references(capability_dir: Path, refs: list[str], target_cursor_dir: Path, force: bool, stats: Stats) -> None:
+    for ref in refs:
+        src = capability_dir / ref.lstrip("./")
+        if not src.exists():
+            print(f"  [warn]  references path not found: {src}")
+            continue
+
+        target_root = target_cursor_dir / "references"
+        if src.is_file():
+            copy_file(src, target_root / src.name, force, stats,
+                      f"references/{src.name} -> .cursor/references/{src.name}")
+        elif src.is_dir():
+            for item in sorted(src.rglob("*")):
+                if item.is_file():
+                    rel = item.relative_to(src)
+                    copy_file(item, target_root / rel, force, stats,
+                              f"references/{rel} -> .cursor/references/{rel}")
 
 
 def ensure_gitignore_entry(workspace: Path, entry: str) -> bool:
@@ -293,6 +320,11 @@ def install_capability(capability_dir: Path, target_cursor_dir: Path, force: boo
     if not rule_refs and (capability_dir / "rules").is_dir():
         rule_refs = ["./rules"]
     install_rules(capability_dir, rule_refs, target_cursor_dir, force, stats)
+
+    ref_refs = ensure_list(plugin_config.get("references"))
+    if not ref_refs and (capability_dir / "references").is_dir():
+        ref_refs = ["./references"]
+    install_references(capability_dir, ref_refs, target_cursor_dir, force, stats)
 
     return stats
 

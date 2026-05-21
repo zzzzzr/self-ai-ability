@@ -17,6 +17,13 @@
       "description": "通用工作流指挥协议 — 通过持久化核心目标文件，确保多步骤任务不遗漏、不偏离。",
       "version": "1.0.0",
       "type": "rule"
+    },
+    {
+      "name": "codex-skill-migrator",
+      "source": "./capabilities/codex-skill-migrator",
+      "description": "将外部 AI 仓库中的 Skill 和 MCP 配置迁移到 Codex，支持 plugins/ 与 capabilities/ 两种源结构。",
+      "version": "1.0.0",
+      "type": "skill"
     }
   ]
 }

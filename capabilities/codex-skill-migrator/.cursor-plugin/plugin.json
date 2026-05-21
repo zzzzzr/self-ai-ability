@@ -1,0 +1,10 @@
+{
+  "name": "codex-skill-migrator",
+  "displayName": "Codex Skill Migrator",
+  "version": "1.0.0",
+  "description": "将外部 AI 仓库中的 Skill 和 MCP 配置迁移到 Codex，支持 plugins/ 与 capabilities/ 两种源结构。",
+  "author": {
+    "name": "self-ai-ability"
+  },
+  "skills": "./skills"
+}
