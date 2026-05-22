@@ -124,8 +124,33 @@ capabilities/workflow-conductor/
 - **轻量快速**: 仅做文件扫描和文本拼接，不依赖外部工具（除 `jq`，考虑提供纯 bash fallback）
 - **失败安全**: 脚本出错时 exit 0 + 空输出，不阻塞 agent 正常工作
 
-## 4. 不在本次范围内
+## 4. 探针 + Reference 拆分（基于 Hooks 的后续优化）
 
-- **不修改协议本体**: `session-objective.md` 不需要因 hooks 的引入而改动。Hooks 是独立的保障层，协议本身的完整性不依赖 hooks 的存在
+> 决策时间: 2026-05-22
+
+### 背景
+
+`session-objective.md` 原为 167 行单文件，标记 `alwaysApply: true`，每次对话都消耗全部 token。绝大多数对话（简单问答、单步骤操作）不需要完整协议内容。
+
+### 为什么现在可以拆分
+
+之前（步骤 22）做过探针 + reference 拆分，但因"agent 可能不主动读取 reference"而合回单文件。Hooks 的引入消除了这个风险：
+
+- **SessionStart hook** 在发现 active objective 时主动注入摘要并提醒 agent 读取完整协议
+- **PreCompact hook** 在 context 压缩前注入 objective 完整内容，防止关键信息丢失
+- 即使 agent 偶尔漏读 reference，hooks 已经把最关键的信息（进度、未完成步骤）推到 agent 面前
+
+### 拆分方案
+
+- **探针** `rules/session-objective.md`（37 行，alwaysApply）：触发条件 + 精简发现绑定 + 读取优先级 + 按需加载指令
+- **完整协议** `references/conductor-protocol.md`（~130 行）：创建流程、模板、更新规则、步骤间检查、禁止行为、执行原则等
+
+### 效果
+
+- 简单对话：37 行（~800 token）vs 原 167 行（~3500 token），节省约 77%
+- 复杂任务：37 + 130 = 167 行，与原来持平，但 reference 仅在需要时加载
+
+## 5. 不在范围内
+
 - **不做 PostToolUse hook**: 虽然可以在每次文件编辑后检查是否应更新 objective，但这会过于频繁，降低开发体验
 - **不做 FileChanged hook**: 虽然 Claude Code 支持监听文件变更，但 objective 文件的变更监听会引入并发复杂性，暂不实现

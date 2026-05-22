@@ -59,7 +59,7 @@ for s in "${summaries[@]}"; do
 ${s}"
 done
 context="${context}
-请参照 Session Objective Protocol 执行发现与绑定流程。"
+请参照 Session Objective Protocol 执行发现与绑定流程。绑定后请立即读取完整协议 conductor-protocol.md。"
 
 is_claude_code=false
 if echo "$INPUT" | grep -q '"hook_event_name"' 2>/dev/null; then
