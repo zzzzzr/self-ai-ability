@@ -24,7 +24,7 @@ alwaysApply: true
 
 ## 发现与绑定
 
-每次会话开始时，扫描 `.ai-objectives/` 目录。存在 `status: active` 的文件时通知用户并绑定；不存在时按触发条件决定是否创建。目录不存在则跳过。
+每次会话开始时，扫描 `.ai-objectives/` 目录。存在 `status: active` 的文件时通知用户并绑定；用户要求恢复暂停目标时，扫描 `status: paused` 的文件并按完整协议恢复。不存在 active 文件时按触发条件决定是否创建。目录不存在则跳过。
 
 ## 读取
 
