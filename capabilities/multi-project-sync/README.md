@@ -12,9 +12,9 @@
 | 脚本 | 角色 |
 |------|------|
 | `scripts/run-command.sh` | **通用引擎**：对 targets 中每个项目执行你传入的任意命令（`{dest}` 占位符） |
-| `scripts/sync-plugins.py` | **内置操作**：对 targets 中每个项目对齐 `.cursor/.claude/settings.json` 的 plugins |
+| `scripts/sync-plugins.py` | **内置操作**：对 targets 中每个项目**追加** `.cursor/.claude/settings.json` 的 plugins（不删除已有项） |
 
-典型联动：先 `sync-plugins --replace` 对齐 plugins，再 `run-command.sh` 批量安装某个 capability。
+典型联动：先 `sync-plugins` 追加缺失的 plugins，再 `run-command.sh` 批量安装某个 capability。可用 `git diff` 确认仅有新增/更新、无删除。
 
 ## 首次配置
 
@@ -31,15 +31,14 @@ cp capabilities/multi-project-sync/config/sync-config.example.json \
 capabilities/multi-project-sync/scripts/run-command.sh \
   "./install.sh workflow-conductor --dest {dest} --force"
 
-# 以标准配置替换所有目标的 plugins
+# 追加标准 plugins（已有 key 跳过，不删除目标里多余的 plugin）
 python3 capabilities/multi-project-sync/scripts/sync-plugins.py \
-  --from-file capabilities/multi-project-sync/config/plugins-standard.json \
-  --replace
+  --from-file capabilities/multi-project-sync/config/plugins-standard.json
 
 # 预览 plugins 变更
 python3 capabilities/multi-project-sync/scripts/sync-plugins.py \
   --from-file capabilities/multi-project-sync/config/plugins-standard.json \
-  --replace --dry-run
+  --dry-run
 ```
 
 ## sync-plugins 选项
@@ -48,8 +47,9 @@ python3 capabilities/multi-project-sync/scripts/sync-plugins.py \
 |------|------|
 | `--from-file FILE` | 从 JSON 读取 plugins |
 | `--from-project DIR` | 从某项目的 settings.json 读取 plugins |
-| `--replace` | 以 source 为准替换（删除多余的） |
-| `--force` | 覆盖同名 plugin |
+| `--force` | 对已存在的 plugin key 更新值（默认跳过已有 key） |
+
+默认**仅追加**：只添加 source 中有、目标中没有的 plugin key，**永不删除**目标里已有的 plugin。若 `git diff` 出现删除行，说明不是本脚本造成的。
 | `--platform cursor/claude/both` | 同步平台（默认 both） |
 | `--dry-run` | 预览变更 |
 | `--exclude DIR` | 排除某个目标 |

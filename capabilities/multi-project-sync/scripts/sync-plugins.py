@@ -50,7 +50,6 @@ def merge_plugins(
     target: Path,
     new_plugins: dict,
     force: bool,
-    replace: bool,
     platforms: list[str],
 ) -> dict[str, int]:
     results = {}
@@ -66,40 +65,31 @@ def merge_plugins(
         added = 0
         overwritten = 0
         skipped = 0
-        removed = 0
 
-        if replace:
-            removed = len(set(plugins.keys()) - set(new_plugins.keys()))
-            added = len(set(new_plugins.keys()) - set(plugins.keys()))
-            overwritten = len(set(new_plugins.keys()) & set(plugins.keys()))
-            data["plugins"] = dict(new_plugins)
-        else:
-            for key, value in new_plugins.items():
-                if key in plugins:
-                    if force:
-                        plugins[key] = value
-                        overwritten += 1
-                    else:
-                        skipped += 1
-                else:
+        for key, value in new_plugins.items():
+            if key in plugins:
+                if force:
                     plugins[key] = value
-                    added += 1
-            data["plugins"] = plugins
+                    overwritten += 1
+                else:
+                    skipped += 1
+            else:
+                plugins[key] = value
+                added += 1
 
-        settings_path.write_text(
-            json.dumps(data, indent=4, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        if added or overwritten:
+            settings_path.write_text(
+                json.dumps(data, indent=4, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
 
         parts = []
         if added:
             parts.append(f"+{added}")
         if overwritten:
             parts.append(f"~{overwritten}")
-        if removed:
-            parts.append(f"-{removed}")
         if skipped:
             parts.append(f"={skipped}")
-        results[subdir] = {"added": added, "overwritten": overwritten, "skipped": skipped, "removed": removed}
+        results[subdir] = {"added": added, "overwritten": overwritten, "skipped": skipped}
         print(f"    [{subdir:7s}] {' '.join(parts) or 'no change'}")
 
     return results
@@ -107,33 +97,30 @@ def merge_plugins(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Sync plugins to multiple projects (Claude Code + Cursor).",
+        description=(
+            "Append plugins to multiple projects (Claude Code + Cursor). "
+            "Never removes existing plugin entries."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 examples:
-  # Append plugins from a JSON file to all targets
+  # Append plugins from a JSON file to all targets (default: skip existing keys)
   %(prog)s --from-file plugins-to-add.json
+
+  # Append standard plugins without touching existing entries
+  %(prog)s --from-file plugins-standard.json
 
   # Sync plugins from one project to all other targets
   %(prog)s --from-project ~/Documents/for_git/overseas-payment
 
-  # Force overwrite existing plugins
+  # Update values for keys that already exist
   %(prog)s --from-file plugins-to-add.json --force
 
   # Only sync to Cursor (skip Claude Code)
   %(prog)s --from-file plugins-to-add.json --platform cursor
 
-  # Only sync to Claude Code (skip Cursor)
-  %(prog)s --from-file plugins-to-add.json --platform claude
-
-  # Use a custom targets config
-  %(prog)s --from-file plugins-to-add.json --config my-targets.json
-
   # Dry run — show what would happen without writing
   %(prog)s --from-file plugins-to-add.json --dry-run
-
-  # Replace entire plugins section with standard config (removes extras)
-  %(prog)s --from-file plugins-standard.json --replace
 """,
     )
 
@@ -160,12 +147,7 @@ examples:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Overwrite existing plugin entries (default: skip existing)",
-    )
-    parser.add_argument(
-        "--replace",
-        action="store_true",
-        help="Replace entire plugins section with the source (removes plugins not in source)",
+        help="Update values for plugin keys that already exist (default: skip existing keys)",
     )
     parser.add_argument(
         "--platform",
@@ -236,12 +218,10 @@ def main() -> None:
 
     print(f"Targets: {len(filtered_targets)} projects")
     print(f"Platforms: {', '.join(p.strip('.') for p in platforms)}")
-    if args.replace:
-        mode = "replace (removes plugins not in source)"
-    elif args.force:
-        mode = "force overwrite"
+    if args.force:
+        mode = "append + update existing keys"
     else:
-        mode = "skip existing"
+        mode = "append only (skip existing keys, never remove)"
     print(f"Mode: {mode}")
     if args.dry_run:
         print("DRY RUN — no files will be written\n")
@@ -254,7 +234,6 @@ def main() -> None:
     print()
 
     if args.dry_run:
-        all_removals: dict[str, set] = {}
         for target in filtered_targets:
             print(f"  {target}")
             for subdir in platforms:
@@ -266,46 +245,30 @@ def main() -> None:
                     existing = set()
                 new_keys = set(new_plugins.keys())
                 to_add = new_keys - existing
-                to_remove = existing - new_keys if args.replace else set()
-                to_overwrite = (existing & new_keys) if (args.force or args.replace) else set()
-                to_skip = (existing & new_keys) if not (args.force or args.replace) else set()
+                to_overwrite = (existing & new_keys) if args.force else set()
+                to_skip = (existing & new_keys) if not args.force else set()
                 parts = []
                 if to_add:
                     parts.append(f"+{len(to_add)}")
                 if to_overwrite:
                     parts.append(f"~{len(to_overwrite)}")
-                if to_remove:
-                    parts.append(f"-{len(to_remove)}")
-                    all_removals.setdefault(str(target), set()).update(to_remove)
                 if to_skip:
                     parts.append(f"={len(to_skip)}")
                 print(f"    [{subdir.strip('.'):7s}] {' '.join(parts) or 'no change'}")
-        if all_removals:
-            all_removed_plugins = set()
-            for v in all_removals.values():
-                all_removed_plugins.update(v)
-            print(f"\n  Will be removed ({len(all_removed_plugins)}):")
-            for p in sorted(all_removed_plugins):
-                print(f"    - {p}")
         print("\nDry run complete. Run without --dry-run to apply.")
         return
 
     # Apply
     total_added = 0
     total_overwritten = 0
-    total_removed = 0
     for target in filtered_targets:
         print(f"  {target}")
-        results = merge_plugins(target, new_plugins, args.force, args.replace, platforms)
+        results = merge_plugins(target, new_plugins, args.force, platforms)
         for stats in results.values():
             total_added += stats["added"]
             total_overwritten += stats["overwritten"]
-            total_removed += stats.get("removed", 0)
 
-    parts = [f"added={total_added}", f"overwritten={total_overwritten}"]
-    if total_removed:
-        parts.append(f"removed={total_removed}")
-    print(f"\nDone. {', '.join(parts)}")
+    print(f"\nDone. added={total_added}, overwritten={total_overwritten}")
 
 
 if __name__ == "__main__":
