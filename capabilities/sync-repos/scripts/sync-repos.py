@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_CONFIG = SCRIPT_DIR / "sync-repos-config.json"
+CAPABILITY_DIR = SCRIPT_DIR.parent
+DEFAULT_CONFIG = CAPABILITY_DIR / "config" / "sync-repos-config.json"
 VALID_PULL_MODES = ("rebase", "ff-only", "merge")
 DEFAULT_PULL_MODE = "rebase"
 SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -184,8 +185,8 @@ def sync_repo(
 
 def print_usage_hint() -> None:
     print(
-        "Hint: copy scripts/sync-repos-config.example.json to scripts/sync-repos-config.json "
-        "or pass --target PATH",
+        "Hint: copy capabilities/sync-repos/config/sync-repos-config.example.json "
+        "to capabilities/sync-repos/config/sync-repos-config.json or pass --target PATH",
         file=sys.stderr,
     )
 

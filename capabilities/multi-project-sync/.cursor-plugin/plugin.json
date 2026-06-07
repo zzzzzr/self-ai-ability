@@ -1,0 +1,10 @@
+{
+  "name": "multi-project-sync",
+  "type": "script",
+  "displayName": "Multi Project Sync",
+  "version": "1.0.0",
+  "description": "多项目批量命令执行与 plugins 配置对齐",
+  "author": {
+    "name": "self-ai-ability"
+  }
+}

@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_CONFIG = SCRIPT_DIR / "sync-config.json"
+CAPABILITY_DIR = SCRIPT_DIR.parent
+DEFAULT_CONFIG = CAPABILITY_DIR / "config" / "sync-config.json"
 SETTINGS_SUBDIRS = [".cursor", ".claude"]
 
 

@@ -329,19 +329,35 @@ def install_capability(capability_dir: Path, target_cursor_dir: Path, force: boo
     return stats
 
 
+INSTALLABLE_TYPES = {"skill", "rule", "mcp"}
+SCRIPT_TYPE = "script"
+
+
 def list_capabilities(manifest: dict) -> None:
     plugins = manifest.get("plugins", [])
     if not plugins:
         print("No capabilities found.")
         return
 
+    installable = [p for p in plugins if p.get("type") in INSTALLABLE_TYPES]
+    scripts = [p for p in plugins if p.get("type") == SCRIPT_TYPE]
+    other = [p for p in plugins if p.get("type") not in INSTALLABLE_TYPES | {SCRIPT_TYPE}]
+
+    def print_group(title: str, items: list[dict]) -> None:
+        if not items:
+            return
+        print(f"{title} ({len(items)}):\n")
+        for plugin in items:
+            cap_type = plugin.get("type", "?")
+            version = plugin.get("version", "?")
+            description = plugin.get("description", "")
+            print(f"  {plugin['name']:22s} {cap_type:6s} v{version:8s}  {description}")
+        print()
+
     print(f"Available capabilities ({len(plugins)}):\n")
-    for plugin in plugins:
-        cap_type = plugin.get("type", "?")
-        version = plugin.get("version", "?")
-        description = plugin.get("description", "")
-        print(f"  {plugin['name']:22s} {cap_type:6s} v{version:8s}  {description}")
-    print()
+    print_group("Installable (skill / rule / mcp)", installable)
+    print_group("Script (run in repo, not installable)", scripts)
+    print_group("Other", other)
 
 
 def parse_args() -> argparse.Namespace:
@@ -368,19 +384,31 @@ def main() -> None:
     if not args.list and not args.capability:
         raise SystemExit("Error: provide a capability name or use --list")
 
-    repo_root = Path(__file__).resolve().parent.parent
+    repo_root = Path(__file__).resolve().parent
     manifest = load_marketplace(repo_root)
 
     if args.list:
         list_capabilities(manifest)
         return
 
+    capability_dir, capability_meta = resolve_capability(repo_root, manifest, args.capability)
+    cap_type = capability_meta.get("type", "")
+    if cap_type == SCRIPT_TYPE:
+        script_dir = capability_dir / "scripts"
+        raise SystemExit(
+            f"Error: '{args.capability}' is type script and cannot be installed.\n"
+            f"Run scripts directly from: {script_dir}"
+        )
+    if cap_type and cap_type not in INSTALLABLE_TYPES:
+        raise SystemExit(
+            f"Error: unsupported capability type '{cap_type}' for install: {args.capability}"
+        )
+
     workspace = Path(args.dest).expanduser().resolve() if args.dest else Path.home()
     if not workspace.is_dir():
         raise SystemExit(f"Error: target directory not found: {workspace}")
 
     target_cursor_dir = workspace / ".cursor"
-    capability_dir, capability_meta = resolve_capability(repo_root, manifest, args.capability)
 
     print(f"Installing capability: {capability_meta['name']} (v{capability_meta.get('version', '?')})")
     print(f"  source: {capability_dir}")
