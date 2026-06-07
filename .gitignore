@@ -23,3 +23,4 @@ credentials*.json
 
 # Personal sync config (contains local paths)
 scripts/sync-config.json
+scripts/sync-repos-config.json

@@ -120,6 +120,53 @@ python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --repl
 
 标准配置文件 `scripts/plugins-standard.json` 提交到仓库，作为所有项目的 plugins 基准。新增或移除 plugin 时更新此文件后执行 `--replace` 即可。
 
+### 批量 Git 更新
+
+当你在一个父目录下维护多个 Git 子仓库（如 `~/Documents/for_git`）时，可以用 `scripts/sync-repos.sh` 批量执行 `git fetch origin` + pull。
+
+```bash
+# 1. 复制配置模板并填入父目录与排除项
+cp scripts/sync-repos-config.example.json scripts/sync-repos-config.json
+
+# 2. 使用 config 中的 target 批量更新
+scripts/sync-repos.sh
+
+# 3. 临时指定 target 并追加排除
+scripts/sync-repos.sh --target ~/Documents/for_hub --exclude foo,bar
+
+# 4. 预览将执行的 git 命令
+scripts/sync-repos.sh --target ~/Documents/for_git --dry-run
+
+# 5. 单次覆盖 pull 策略（默认 rebase）
+scripts/sync-repos.sh --pull-mode ff-only
+```
+
+配置文件 `sync-repos-config.json`（不提交到仓库，已 gitignore）：
+
+```json
+{
+  "target": "~/Documents/for_git",
+  "pull_mode": "rebase",
+  "exclude": ["archived-demo", "tmp-playground"]
+}
+```
+
+行为说明：
+
+- 只扫描 `target` 的**直接子文件夹**（一层，不递归）
+- 非 Git 目录、排除项、隐藏目录（`.` 开头）计入 `skipped`
+- `pull_mode` 支持 `rebase`（默认）、`ff-only`、`merge`；CLI `--pull-mode` 优先于 config
+- pull 失败时若处于 rebase 状态会自动 `git rebase --abort`，不自动解决冲突
+- 全部处理完后输出「遇到问题的子目录」清单；有失败时退出码非 0
+
+| 选项 | 作用 |
+|------|------|
+| `--target PATH` | 覆盖 config 中的父目录 |
+| `--pull-mode MODE` | 覆盖 pull 策略：`rebase` / `ff-only` / `merge` |
+| `--exclude NAME` | 临时追加排除的子文件夹名（与 config exclude 取并集） |
+| `--config FILE` | 指定配置文件（默认 `scripts/sync-repos-config.json`） |
+| `--dry-run` | 只打印计划执行的 git 命令 |
+
 ## 仓库结构
 
 ```text
@@ -135,9 +182,12 @@ python3 scripts/sync-plugins.py --from-file scripts/plugins-standard.json --repl
     ├── install.sh
     ├── install-cursor-capability.py
     ├── sync-capabilities.sh
+    ├── sync-repos.sh
+    ├── sync-repos.py
     ├── sync-plugins.py
     ├── plugins-standard.json
-    └── sync-config.example.json
+    ├── sync-config.example.json
+    └── sync-repos-config.example.json
 ```
 
 每个 capability 都是一个独立 plugin，内部只放自己需要的资源和两份薄清单：
