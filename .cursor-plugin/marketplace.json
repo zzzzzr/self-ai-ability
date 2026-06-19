@@ -14,8 +14,8 @@
     {
       "name": "workflow-conductor",
       "source": "./capabilities/workflow-conductor",
-      "description": "通用工作流指挥协议 — 通过持久化核心目标文件，确保多步骤任务不遗漏、不偏离。",
-      "version": "1.0.0",
+      "description": "通用工作流指挥协议 — 通过持久化核心目标文件，确保多步骤任务不遗漏、不偏离。含 hooks 执行保障层。",
+      "version": "1.1.0",
       "type": "rule"
     },
     {
@@ -24,6 +24,20 @@
       "description": "将外部 AI 仓库中的 Skill 和 MCP 配置迁移到 Codex，支持 plugins/ 与 capabilities/ 两种源结构。",
       "version": "1.0.0",
       "type": "skill"
+    },
+    {
+      "name": "multi-project-sync",
+      "source": "./capabilities/multi-project-sync",
+      "description": "多项目批量命令执行与 plugins 配置对齐。",
+      "version": "1.0.0",
+      "type": "script"
+    },
+    {
+      "name": "sync-repos",
+      "source": "./capabilities/sync-repos",
+      "description": "父目录下子 Git 仓库批量 fetch + pull。",
+      "version": "1.0.0",
+      "type": "script"
     }
   ]
 }

@@ -1,162 +1,78 @@
 # self-ai-ability
 
-个人 AI Agent 能力管理仓库，兼容 `Claude Code` plugin marketplace 协议和 `Cursor` 本地安装脚本。
+个人 AI Agent 能力管理仓库，兼容 Claude Code plugin marketplace 与 Cursor 本地安装。
 
-按"单一 capability"粒度管理和安装 `skill`、`agent`、`hook`、`mcp`、`command` 等能力。
+按「单一 capability」粒度管理 skill、rule、mcp、script 等能力。
 
 ## 核心原则
 
-- 每个可安装单元就是一个 capability
-- 每个 capability 只承载一种主能力
-- Cursor 端支持按 capability 名称安装
-- 默认安装到 `~/.cursor/`，也支持安装到指定项目
+- 每个可安装/可维护单元就是一个 capability，位于 `capabilities/<name>/`
+- 每个 capability 只承载一种主 type（skill / rule / mcp / script）
+- 默认安装到 `~/.cursor/`，也支持 `--dest` 安装到指定项目
 - 不做分类安装，不做全量安装
 
-## 当前内置能力
+## 文档导航
 
-| capability | 类型 | 说明 |
-|---|---|---|
-| `example-skill` | skill | 示例 skill，可作为新建 capability 的模板 |
-| `workflow-conductor` | rule | 通用工作流指挥协议。引导 agent 在多步骤任务中创建和维护核心目标文件（项目根目录 `.ai-objectives/` 下，按时间和业务场景命名），确保任务不遗漏、不偏离、多任务不冲突。安装时会自动将 `.ai-objectives/` 追加到项目 `.gitignore` |
-| `codex-skill-migrator` | skill | 将外部 AI 仓库（plugins/ 或 capabilities/ 结构）中的 Skill 和 MCP 配置迁移到 Codex，支持 dry-run 与 MCP 合并到 ~/.codex/config.toml |
+| 类别 | 文档 |
+|------|------|
+| 能力索引 | [capabilities/README.md](capabilities/README.md) |
+| 文档索引 | [docs/README.md](docs/README.md) |
+| 新增 capability | [docs/contributing.md](docs/contributing.md) |
 
-## 快速开始
+各 capability 详细说明见对应目录下的 `README.md`。
 
-### Claude Code
+## 仓库元层
+
+与 README 同级，用于描述和管理能力，本身不是 capability：
+
+| 文件 | 作用 |
+|------|------|
+| `install.sh` | Cursor 安装入口 |
+| `install-cursor-capability.py` | 读取 marketplace，安装 skill/rule/mcp |
+| `.cursor-plugin/marketplace.json` | 能力清单 |
+| `.claude-plugin/marketplace.json` | Claude Code 能力清单 |
+
+### 安装 capability（Cursor）
 
 ```bash
-# 1. 添加 marketplace
+./install.sh --list
+./install.sh <capability-name>
+./install.sh <capability-name> --dest /path/to/project --force
+```
+
+- `type: script` 的能力不可安装，请在仓库内直接运行其 `scripts/`
+- `--dest ~` 写入 `~/.cursor/`；`--dest /path/to/project` 写入项目 `.cursor/`
+
+### 安装 capability（Claude Code）
+
+```bash
 /plugin marketplace add <your-repo-url>
-
-# 2. 安装指定 capability
-/plugin install example-skill@self-ai-ability
-```
-
-### Cursor
-
-```bash
-# 1. 查看可安装 capability
-/path/to/self-ai-ability/scripts/install.sh --list
-
-# 2. 安装指定 capability（默认安装到 ~/.cursor/）
-/path/to/self-ai-ability/scripts/install.sh <capability-name>
-
-# 3. 安装到具体项目（rules 和 references 会安装到 <project>/.cursor/ 下）
-/path/to/self-ai-ability/scripts/install.sh <capability-name> --dest /path/to/project
-
-# 4. 冲突时强制覆盖
-/path/to/self-ai-ability/scripts/install.sh <capability-name> --force
-```
-
-对于包含 `references` 的 capability，安装脚本会将 rules 和 references 一并安装到 `.cursor/` 下。Cursor 项目规则会以 `.mdc` 文件落盘到 `.cursor/rules/`。
-
-`--dest` 规则：
-
-- `--dest ~` 写入 `~/.cursor/`
-- `--dest /path/to/project` 写入 `/path/to/project/.cursor/`
-- 不传 `--dest` 时，默认写入 `~/.cursor/`
-
-## 批量同步工具
-
-当你有多个项目（或同一项目的多个副本）需要安装相同的 capability 时，可以用 `scripts/sync-capabilities.sh` 一条命令同步到所有目标。
-
-```bash
-# 1. 复制配置模板并填入你的目标项目路径
-cp scripts/sync-config.example.json scripts/sync-config.json
-
-# 2. 执行任意安装命令，{dest} 会被逐个替换为配置中的目标路径
-scripts/sync-capabilities.sh "python3 scripts/install-cursor-capability.py workflow-conductor --dest {dest} --force"
-
-# 也可以执行其他仓库的安装脚本
-scripts/sync-capabilities.sh "bash ~/other-repo/install.sh --project={dest}"
-```
-
-配置文件 `sync-config.json`（不提交到仓库，已 gitignore）：
-
-```json
-{
-  "targets": [
-    "~/Documents/for_git/project-a",
-    "~/Documents/for_hub/project-a",
-    "~/Documents/for_git/project-b"
-  ]
-}
+/plugin install <capability-name>@self-ai-ability
 ```
 
 ## 仓库结构
 
 ```text
 .
-├── .claude-plugin/marketplace.json
+├── README.md
+├── install.sh
+├── install-cursor-capability.py
 ├── .cursor-plugin/marketplace.json
-├── capabilities/
-│   └── <your-capability>/
-├── docs/
-│   └── install/
-│       └── <capability-name>.md
-└── scripts/
-    ├── install.sh
-    ├── install-cursor-capability.py
-    ├── sync-capabilities.sh
-    └── sync-config.example.json
-```
-
-每个 capability 都是一个独立 plugin，内部只放自己需要的资源和两份薄清单：
-
-```text
-capabilities/<name>/
-├── .claude-plugin/plugin.json
-├── .cursor-plugin/plugin.json
-└── <ability files>
+├── capabilities/                  # 5 个能力（skill / rule / script）
+│   ├── example-skill/
+│   ├── workflow-conductor/
+│   ├── codex-skill-migrator/
+│   ├── multi-project-sync/
+│   └── sync-repos/
+└── docs/
+    ├── contributing.md
+    └── install/
 ```
 
 ## 支持的资源类型
 
-- `skills`
-- `agents`
-- `hooks`
-- `mcpServers`
-- `commands`
-- `rules`
-- `references`
+skill、rule、mcp 通过 `install.sh` 安装；script 在仓库内运行。
 
-Cursor 安装脚本处理上面七类资源。其中 `commands` 会被复制到 `.cursor/commands/`，作为 Cursor 斜杠命令使用；`rules` 会安装为 `.cursor/rules/*.mdc`；`references` 会被复制到 `.cursor/references/`，供 rules 按需读取。
+Cursor 安装时：`commands` → `.cursor/commands/`；`rules` → `.cursor/rules/*.mdc`；`references` → `.cursor/references/`。
 
-## plugin.json 说明
-
-每个 capability 内的 `.claude-plugin/plugin.json` 和 `.cursor-plugin/plugin.json` 是本仓库自定义的清单格式，用于声明该 capability 包含哪些资源。它们**不是** Claude Code 或 Cursor 官方的插件规范，仅供本仓库的安装脚本（`scripts/install.sh`、`scripts/install-cursor-capability.py`）和 Claude Code `/plugin` 命令识别使用。
-
-## 新增一个 capability
-
-1. 在 `capabilities/` 下创建目录
-2. 补充 `.claude-plugin/plugin.json`
-3. 补充 `.cursor-plugin/plugin.json`
-4. 放入真实资源文件
-5. 在根目录两个 `marketplace.json` 中登记 capability
-
-推荐约定：
-
-- `skill` 使用 `skills/<skill-name>/SKILL.md`
-- `agent` 使用 `agents/<agent-name>.md`
-- `hook` 使用 `hooks/hooks.json` 加配套脚本
-- `mcp` 使用 `mcp-claude.json` 和 `mcp-cursor.json`
-- `command` 使用 `commands/<commandName>.md`
-- `rule` 使用 `rules/<rule-name>.md`（`alwaysApply: true` 的轻量规则）
-- `reference` 使用 `references/<name>.md`（供 rules 按需 Read 的详细文档）
-
-最小 skill 结构示例：
-
-```text
-capabilities/<capability-name>/
-├── .claude-plugin/plugin.json
-├── .cursor-plugin/plugin.json
-└── skills/<skill-name>/SKILL.md
-```
-
-## 人工操作说明
-
-需要人工完成的安装后步骤，统一放在 `docs/install/` 下，例如：
-
-- `docs/install/<capability-name>.md`
-
-这里适合写密钥配置、首次登录、依赖安装等人工步骤。
+`plugin.json` 是本仓库自定义清单格式，供 `install.sh` 与 Claude Code `/plugin` 识别，非官方插件规范。

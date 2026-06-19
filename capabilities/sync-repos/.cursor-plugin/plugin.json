@@ -1,0 +1,10 @@
+{
+  "name": "sync-repos",
+  "type": "script",
+  "displayName": "Sync Repos",
+  "version": "1.0.0",
+  "description": "父目录下子 Git 仓库批量 fetch + pull",
+  "author": {
+    "name": "self-ai-ability"
+  }
+}

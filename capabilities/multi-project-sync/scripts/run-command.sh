@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# sync-capabilities.sh — 对多个目标项目批量执行同一条安装命令
-# 命令中用 {dest} 占位符代表目标路径，脚本会逐个替换并执行
+# run-command.sh — 对多个目标项目批量执行同一条命令（{dest} 占位符）
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/sync-config.json"
+CAPABILITY_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$CAPABILITY_DIR/config/sync-config.json"
 
 usage() {
   cat <<EOF
-Usage: sync-capabilities.sh <command with {dest} placeholder>
+Usage: run-command.sh <command with {dest} placeholder>
 
 对配置文件中的每个目标项目执行指定命令。
 命令中的 {dest} 会被替换为目标项目路径。
@@ -16,9 +16,9 @@ Usage: sync-capabilities.sh <command with {dest} placeholder>
 Config: $CONFIG_FILE
 
 Examples:
-  sync-capabilities.sh "python3 scripts/install-cursor-capability.py workflow-conductor --dest {dest} --force"
-  sync-capabilities.sh "cp some-rule.mdc {dest}/.cursor/rules/"
-  sync-capabilities.sh "bash ~/other-repo/install.sh --project={dest}"
+  run-command.sh "./install.sh workflow-conductor --dest {dest} --force"
+  run-command.sh "cp some-rule.mdc {dest}/.cursor/rules/"
+  run-command.sh "bash ~/other-repo/install.sh --project={dest}"
 EOF
   exit 0
 }

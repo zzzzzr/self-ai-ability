@@ -1,4 +1,5 @@
 {
   "name": "example-skill",
+  "type": "skill",
   "skills": "./skills"
 }
