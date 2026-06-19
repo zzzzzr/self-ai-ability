@@ -1,0 +1,85 @@
+---
+description: 每次会话开始时检查并按需同步 AI 仓库插件
+alwaysApply: true
+---
+
+# AI Hub 插件同步
+
+每次会话开始时，执行以下检查（**只执行一次，不要重复触发**）：
+
+## Step 1：读取配置
+
+按顺序读取以下两个配置文件（均可能不存在）：
+- 全局配置：`~/.cursor/ai-hub-sync.json`
+- 项目配置：`.cursor/ai-hub-sync.json`（相对于当前项目根目录）
+
+**合并规则**：
+- 以全局配置为基础
+- 项目配置中出现的 repo 条目，`plugins` 字段**整体覆盖**全局同名 repo 的 `plugins`
+- `repoPath`、`installScript`、`lastSyncDate` 等其他字段继承全局
+
+## Step 2：判断状态
+
+**情况 A：全局配置不存在或 `repos` 为空**
+→ 提示用户：
+```
+检测到尚未配置 AI Hub 同步。运行 /cursor-sync 可完成初始化（配置仓库路径和插件列表）。
+```
+然后**停止**，不再执行后续步骤。
+
+**情况 B：所有 repo 的 `lastSyncDate` 均等于今天日期（YYYY-MM-DD）**
+→ 静默跳过，不询问用户。
+
+**情况 C：存在至少一个 repo 的 `lastSyncDate` 不等于今天**
+→ 进入 Step 3。
+
+## Step 3：询问用户
+
+列出所有 `lastSyncDate != 今天` 的 repo，格式如下：
+
+```
+检测到以下仓库可更新插件：
+  [1] my-ai-hub   路径: /Users/xxx/my-ai-hub   插件: plugin-a, plugin-b   上次同步: 2026-06-18
+  [2] another-hub 路径: /Users/xxx/another-hub  插件: plugin-c             上次同步: 从未
+  [all] 全部同步
+  [skip] 跳过
+
+请选择要同步的仓库（输入序号、all 或 skip）：
+```
+
+等待用户回复。
+
+## Step 4：执行同步
+
+对用户选择的每个 repo，依次执行：
+
+```bash
+# 1. 拉取最新代码
+cd <repoPath>
+git pull
+
+# 2. 安装选定插件（逐个调用，--force 强制更新）
+# installScript 取自该 repo 配置的 installScript 字段
+# 若未配置，按顺序检测：先找 install.sh，再找 scripts/install.sh，取第一个存在的
+<repoPath>/<installScript> <plugin-1> --dest <当前项目目录> --force
+<repoPath>/<installScript> <plugin-2> --dest <当前项目目录> --force
+# ...以此类推
+```
+
+同步成功后，将该 repo 的 `lastSyncDate` 更新为今天日期，**写回全局配置** `~/.cursor/ai-hub-sync.json`。
+
+同时在全局配置的该 repo 条目中追加/更新 `syncHistory`：
+```json
+{
+  "date": "YYYY-MM-DD",
+  "plugins": ["plugin-1", "plugin-2"],
+  "result": "success"
+}
+```
+
+## 注意事项
+
+- 当前项目目录通过 `pwd` 或 Cursor 的工作区根目录确定
+- 每个 repo 的 `installScript` 若未配置，按顺序检测 `install.sh` → `scripts/install.sh`，取第一个存在的；两者均不存在则报错
+- 若 `git pull` 或安装脚本执行失败，在 `syncHistory` 中记录 `"result": "failed"`，并告知用户具体错误
+- 不要修改项目级配置 `.cursor/ai-hub-sync.json`，`lastSyncDate` 和 `syncHistory` 只写全局配置

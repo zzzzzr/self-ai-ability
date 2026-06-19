@@ -1,6 +1,6 @@
 # Capabilities
 
-本目录包含仓库登记的全部能力（共 5 个）。按 `type` 分组：
+本目录包含仓库登记的全部能力（共 6 个）。按 `type` 分组：
 
 ## skill
 
@@ -14,6 +14,7 @@
 | 名称 | 说明 | 文档 |
 |------|------|------|
 | `workflow-conductor` | 多步骤任务核心目标协议 + hooks 保障层 | [README](workflow-conductor/README.md) |
+| `cursor-sync` | Cursor 多仓库 AI 插件自动同步（含 `/cursor-sync` 配置 Skill） | [README](cursor-sync/README.md) |
 
 ## script
 
