@@ -1,0 +1,8 @@
+{
+  "target": "~/Documents/for_git",
+  "pull_mode": "rebase",
+  "exclude": [
+    "archived-demo",
+    "tmp-playground"
+  ]
+}
