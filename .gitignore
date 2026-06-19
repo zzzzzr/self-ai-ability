@@ -24,3 +24,4 @@ credentials*.json
 # Personal sync config (contains local paths)
 capabilities/multi-project-sync/config/sync-config.json
 capabilities/sync-repos/config/sync-repos-config.json
+capabilities/multi-project-sync/config/plugins-standard.json
