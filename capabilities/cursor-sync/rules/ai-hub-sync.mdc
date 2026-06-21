@@ -1,0 +1,112 @@
+---
+description: 每次会话开始时检查并按需同步 AI 仓库插件
+alwaysApply: true
+---
+
+# AI Hub 插件同步
+
+## 优先级声明
+
+**本规则在会话首条回复前，优先级高于所有其他 alwaysApply 规则（包括 session-objective、coding-profile 等）。在本规则的检查流程完成之前，不得输出对用户原始问题的回答。**
+
+---
+
+## Step 1：读取配置
+
+按顺序读取以下两个配置文件（均可能不存在）：
+- 全局配置：`~/.cursor/ai-hub-sync.json`
+- 项目配置：`.cursor/ai-hub-sync.json`（相对于当前项目根目录）
+
+**合并规则**：
+- 以全局配置为基础
+- 项目配置中出现的 repo 条目，`plugins` 字段**整体覆盖**全局同名 repo 的 `plugins`
+- `repoPath`、`installScript`、`lastSyncDate` 等其他字段继承全局
+
+## Step 2：判断状态
+
+**情况 A：全局配置不存在或 `repos` 为空**
+
+首条回复必须以初始化引导开头，按以下 5 步执行，不得跳过，不得在用户回复「跳过」或完成配置之前直接回答用户的原始问题：
+
+1. 告知用户检测到尚未配置 AI Hub 同步，即将引导完成初始化
+2. 询问用户 AI Hub 仓库的本地路径，收到后校验目录是否存在，并自动检测安装脚本（先找 `install.sh`，再找 `scripts/install.sh`）
+3. 执行 `<repoPath>/<installScript> --list` 列出可用插件，供用户选择（逗号分隔序号，或 all）
+4. 将配置写入 `~/.cursor/ai-hub-sync.json`，格式见本文件末尾
+5. 询问是否立即执行一次同步；如果用户同意，执行 Step 4 的同步流程
+
+如需配置多个仓库，在 Step 2 完成后继续询问是否还有其他仓库。
+
+**情况 B：所有 repo 的 `lastSyncDate` 均等于今天日期（YYYY-MM-DD）**
+→ 静默跳过，直接回答用户问题。
+
+**情况 C：存在至少一个 repo 的 `lastSyncDate` 不等于今天**
+→ 进入 Step 3。
+
+## Step 3：询问用户
+
+首条回复必须以同步询问开头，列出所有 `lastSyncDate != 今天` 的 repo：
+
+```
+检测到以下仓库今天尚未同步插件：
+  [1] my-ai-hub   路径: /Users/xxx/my-ai-hub   插件: plugin-a, plugin-b   上次同步: 2026-06-18
+  [2] another-hub 路径: /Users/xxx/another-hub  插件: plugin-c             上次同步: 从未
+  [all] 全部同步
+  [skip] 跳过
+
+请选择要同步的仓库（输入序号、all 或 skip）：
+```
+
+等待用户回复后再回答用户的原始问题。
+
+## Step 4：执行同步
+
+对用户选择的每个 repo，依次执行：
+
+```bash
+# 1. 拉取最新代码
+cd <repoPath>
+git pull
+
+# 2. 安装选定插件（逐个调用，--force 强制更新）
+# installScript 取自该 repo 配置的 installScript 字段
+# 若未配置，按顺序检测：先找 install.sh，再找 scripts/install.sh，取第一个存在的
+<repoPath>/<installScript> <plugin-1> --dest <当前项目目录> --force
+<repoPath>/<installScript> <plugin-2> --dest <当前项目目录> --force
+# ...以此类推
+```
+
+同步成功后，将该 repo 的 `lastSyncDate` 更新为今天日期，**写回全局配置** `~/.cursor/ai-hub-sync.json`。
+
+同时在全局配置的该 repo 条目中追加/更新 `syncHistory`：
+```json
+{
+  "date": "YYYY-MM-DD",
+  "plugins": ["plugin-1", "plugin-2"],
+  "result": "success"
+}
+```
+
+## 注意事项
+
+- 当前项目目录通过 `pwd` 或 Cursor 的工作区根目录确定
+- 每个 repo 的 `installScript` 若未配置，按顺序检测 `install.sh` → `scripts/install.sh`，取第一个存在的；两者均不存在则报错
+- 若 `git pull` 或安装脚本执行失败，在 `syncHistory` 中记录 `"result": "failed"`，并告知用户具体错误
+- 不要修改项目级配置 `.cursor/ai-hub-sync.json`，`lastSyncDate` 和 `syncHistory` 只写全局配置
+
+## 配置文件格式参考
+
+```json
+{
+  "repos": {
+    "my-ai-hub": {
+      "repoPath": "/Users/xxx/my-ai-hub",
+      "installScript": "install.sh",
+      "plugins": ["plugin-a", "plugin-b"],
+      "lastSyncDate": "2026-06-21",
+      "syncHistory": [
+        { "date": "2026-06-21", "plugins": ["plugin-a", "plugin-b"], "result": "success" }
+      ]
+    }
+  }
+}
+```

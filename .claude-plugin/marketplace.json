@@ -38,6 +38,13 @@
       "description": "父目录下子 Git 仓库批量 fetch + pull。",
       "version": "1.0.0",
       "type": "script"
+    },
+    {
+      "name": "cursor-sync",
+      "source": "./capabilities/cursor-sync",
+      "description": "为 Cursor 提供多仓库 AI 插件自动同步能力。每次会话开始时检测并按需更新已配置的 AI 仓库插件，支持全局+项目两级配置。",
+      "version": "1.0.0",
+      "type": "rule"
     }
   ]
 }
