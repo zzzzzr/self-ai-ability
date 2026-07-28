@@ -1,6 +1,6 @@
 # Capabilities
 
-本目录包含仓库登记的全部能力（共 6 个）。按 `type` 分组：
+本目录包含仓库登记的全部能力（共 7 个）。按 `type` 分组：
 
 ## skill
 
@@ -8,6 +8,7 @@
 |------|------|------|
 | `example-skill` | 示例 skill，可作为新建 capability 的模板 | [README](example-skill/README.md) |
 | `codex-skill-migrator` | 将外部 AI 仓库 Skill/MCP 迁移到 Codex | [README](codex-skill-migrator/README.md) |
+| `dev-verify` | 代码实施后的增量验证工具，通过注册验证项检查增量代码 | [README](dev-verify/README.md) |
 
 ## rule
 
