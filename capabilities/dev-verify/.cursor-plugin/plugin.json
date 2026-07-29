@@ -1,0 +1,12 @@
+{
+  "name": "dev-verify",
+  "type": "skill",
+  "displayName": "Dev Verify",
+  "version": "0.1.0",
+  "description": "代码实施后的增量验证工具。通过注册验证项，检查增量代码是否符合各类要求和约束。",
+  "author": {
+    "name": "self-ai-ability"
+  },
+  "commands": ["./commands"],
+  "references": ["./references"]
+}
